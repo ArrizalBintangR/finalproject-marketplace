@@ -1,5 +1,70 @@
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$dbname = "marketplace";
+
+$conn = new mysqli($servername, $username, $password, $dbname);
+
+// Memeriksa koneksi
+if ($conn->connect_error) {
+  die("Connection failed: " . $conn->connect_error);
+}
+
+// Memeriksa apakah form sudah disubmit
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+  $item_id = $_POST['item_id'];
+  $item_name = $_POST['item_name'];
+  $description = $_POST['description'];
+  $price = $_POST['price'];
+
+  // Memperbarui data item
+  $update_sql = "UPDATE items SET item_name=?, description=?, price=? WHERE item_id=?";
+  $stmt = $conn->prepare($update_sql);
+  if ($stmt) {
+    $stmt->bind_param("sssi", $item_name, $description, $price, $item_id);
+
+    if ($stmt->execute()) {
+      echo "Item updated successfully";
+    } else {
+      echo "Error updating item: " . $stmt->error;
+    }
+
+    $stmt->close();
+  } else {
+    echo "Error preparing statement: " . $conn->error;
+  }
+}
+
+// Mengambil data item yang akan diedit
+$item_id = $_GET['item_id'];
+$sql = "SELECT * FROM items WHERE item_id=?";
+$stmt = $conn->prepare($sql);
+if ($stmt) {
+  $stmt->bind_param("i", $item_id);
+  $stmt->execute();
+  $result = $stmt->get_result();
+
+  // Memeriksa apakah query dieksekusi dengan sukses
+  if ($result->num_rows > 0) {
+    $row = $result->fetch_assoc();
+  } else {
+    echo "Item not found";
+    exit;
+  }
+
+  $stmt->close();
+} else {
+  echo "Error preparing statement: " . $conn->error;
+}
+
+// Menutup koneksi database
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>My Marketplace</title>
   <style>
@@ -125,6 +190,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="navbar">
     <div class="navbar-title">
@@ -140,31 +206,33 @@
   </div>
 
   <div class="form-container">
-    <form class="form" action="process_form.php" method="POST" enctype="multipart/form-data">
+    <form class="form" action="edit_form.php" method="POST" enctype="multipart/form-data">
+      <input type="hidden" name="item_id" value="<?php echo $item_id; ?>">
       <div class="form-group">
         <label for="item_name">Item Name:</label>
-        <input type="text" id="item_name" name="item_name" required>
+        <input type="text" id="item_name" name="item_name" value="<?php echo $row['item_name']; ?>" required>
       </div>
-      
+
       <div class="form-group">
         <label for="description">Description:</label>
-        <textarea id="description" name="description" required></textarea>
+        <textarea id="description" name="description" required><?php echo $row['description']; ?></textarea>
       </div>
-      
+
       <div class="form-group">
         <label for="image">Image:</label>
         <input type="file" id="image" name="image">
       </div>
-      
+
       <div class="form-group">
         <label for="price">Price:</label>
-        <input type="text" id="price" name="price" required>
+        <input type="text" id="price" name="price" value="<?php echo $row['price']; ?>" required>
       </div>
-      
+
       <div class="price-submit">
         <input type="submit" value="Submit">
       </div>
     </form>
   </div>
 </body>
+
 </html>

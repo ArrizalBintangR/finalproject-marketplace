@@ -1,5 +1,42 @@
+<?php
+$servername = "localhost";
+$username = "root";
+$password = "";
+$database = "marketplace";
+
+$conn = new mysqli($servername, $username, $password, $database);
+
+if ($conn->connect_error) {
+  die("Koneksi gagal: " . $conn->connect_error);
+}
+
+// Menghapus item dan gambar terkait
+if (isset($_GET['item_id']) && isset($_GET['action']) && $_GET['action'] === 'delete') {
+  $item_id = $_GET['item_id'];
+
+  // Menghapus gambar terkait dari tabel Images
+  $delete_image_sql = "DELETE FROM Images WHERE item_id = '$item_id'";
+  $delete_image_result = $conn->query($delete_image_sql);
+
+  // Menghapus item dari tabel Items
+  $delete_item_sql = "DELETE FROM Items WHERE item_id = '$item_id'";
+  $delete_item_result = $conn->query($delete_item_sql);
+
+  if ($delete_item_result && $delete_image_result) {
+    echo "Item berhasil dihapus.";
+  } else {
+    echo "Terjadi kesalahan saat menghapus item: " . $conn->error;
+  }
+}
+
+// Mengambil data item dari database
+$sql = "SELECT Items.*, Images.image_url FROM Items LEFT JOIN Images ON Items.item_id = Images.item_id";
+$result = $conn->query($sql);
+?>
+
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>My Marketplace</title>
   <style>
@@ -92,6 +129,7 @@
     }
   </style>
 </head>
+
 <body>
   <div class="navbar">
     <div class="navbar-title">
@@ -107,23 +145,40 @@
   </div>
 
   <div class="container">
-    <div class="item">
-      <div class="item-image">
-        <img src="path_to_image.jpg" alt="Item Image">
-      </div>
-      <div class="item-details">
-        <h2 class="item-name">Item Name</h2>
-        <p class="item-description">Item Description</p>
-        <p class="item-price">$99.99</p>
-      </div>
-      <div class="item-options">
-        <a href="edit_form.php">EDIT</a>
-        <a href="#">DELETE</a>
-      </div>
-    </div>
+    <?php
+    if ($result && $result->num_rows > 0) {
+      while ($row = $result->fetch_assoc()) {
+        $item_id = $row["item_id"];
+        $item_name = $row["item_name"];
+        $description = $row["description"];
+        $price = $row["price"];
+        $image_url = $row["image_url"];
+    ?>
+        <div class="item">
+          <div class="item-image">
+            <img src="<?php echo $image_url; ?>" alt="Item Image">
+          </div>
 
-    <!-- Tambahan -->
+          <div class="item-details">
+            <h2 class="item-name"><?php echo $item_name; ?></h2>
+            <p class="item-description"><?php echo $description; ?></p>
+            <p class="item-price">$<?php echo $price; ?></p>
+          </div>
+          <div class="item-options">
+            <a href="edit_form.php?item_id=<?php echo $item_id; ?>">EDIT</a>
+            <a href="?item_id=<?php echo $item_id; ?>&action=delete">DELETE</a>
+          </div>
+        </div>
+    <?php
+      }
+    } else {
+      echo "Tidak ada item yang ditemukan.";
+    }
 
+    // Menutup koneksi database
+    $conn->close();
+    ?>
   </div>
 </body>
+
 </html>
