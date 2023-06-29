@@ -49,8 +49,7 @@ if ($stmt) {
   if ($result->num_rows > 0) {
     $row = $result->fetch_assoc();
   } else {
-    echo "Item not found";
-    exit;
+    header('Location: index.php');
   }
 
   $stmt->close();
